@@ -41,6 +41,15 @@ def network(images: np.ndarray, model):
     return prediction[0][1] > 0.5
 
 
+def check_to_check(prev_tfls, point):
+    for tfl in prev_tfls:
+
+        if tfl[0] + 40 > point[0] > tfl[0] - 40 and tfl[1] + 40 > point[1] > tfl[1] - 40:
+            return False
+
+    return True
+
+
 def crop(candidate, image):
     height, width = image.shape[:2]
 
@@ -74,7 +83,7 @@ def get_dists(prev, current, focal, pp, em):
     return np.array(curr_frame.traffic_lights_3d_location)[:, 2]
 
 
-def visualizition(frame):
+def visualizition(frame, ppoint):
     fig, (lights, tfls, dists) = plt.subplots(1, 3, figsize=(12, 10))
     lights.imshow(plt.imread(frame.image_path))
     candidates = np.array(frame.light_candidates)
@@ -84,7 +93,7 @@ def visualizition(frame):
 
     tfls.imshow(plt.imread(frame.image_path))
 
-    if frame.tfl_candidates != []:
+    if frame.tfl_candidates:
         candidates = np.array(frame.tfl_candidates)
         x, y = candidates[:, 0], candidates[:, 1]
         tfls.scatter(x, y, c=frame.colors_tfl, s=1)
@@ -93,9 +102,12 @@ def visualizition(frame):
     if frame.distances != list():
         x_cord, y_cord, image_dist = get_coords_tfl(frame)
         dists.imshow(plt.imread(frame.image_path))
-        for i in range(len(x_cord)):
-            dists.text(x_cord[i], y_cord[i], r'{0:.1f}'.format(frame.distances[i]), color='r')
 
+        for i in range(len(x_cord)):
+            dists.plot([x_cord[i], ppoint[0]], [y_cord[i], ppoint[1]], 'b')
+            dists.text(x_cord[i], y_cord[i], r'{0:.1f}'.format(frame.distances[i]), color='r')
+            dists.plot(x_cord[i], y_cord[i], frame.colors_tfl[i] + '+')
+        dists.plot(ppoint[0], ppoint[1], 'r+')
     dists.set_title('Distances of tfl')
     plt.show()
 
@@ -125,21 +137,22 @@ class Manager:
 
         # Phase2
         for index, point in enumerate(current.light_candidates):
-            crop_image = crop(point, image)
+            if check_to_check(current.tfl_candidates, point):
+                crop_image = crop(point, image)
 
-            if crop_image.any():
-                isTFL = network(crop_image, self.model)
+                if crop_image.any():
+                    isTFL = network(crop_image, self.model)
 
-                if isTFL:
-                    current.tfl_candidates.append(point)
-                    current.colors_tfl.append(current.colors_lights[index])
+                    if isTFL:
+                        current.tfl_candidates.append(point)
+                        current.colors_tfl.append(current.colors_lights[index])
         # Phase3
         print(prev.tfl_candidates)
         print(current.tfl_candidates)
         if prev.tfl_candidates != [] and current.tfl_candidates != []:
             current.distances = get_dists(prev, current, self.focal, self.pp, self.list_EM[i - 1])
 
-        visualizition(current)
+        visualizition(current, self.pp)
         prev = copy.deepcopy(current)
 
         return prev, current
