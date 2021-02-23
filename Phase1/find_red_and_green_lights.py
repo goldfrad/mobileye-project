@@ -46,7 +46,7 @@ def get_max_candidate(img):
 
     for x in range(10, width, 7):
         for y in range(10, height, 7):
-            if img[y, x] > 22000:
+            if img[y, x] > 23500:
                 x_point.append(x)
                 y_point.append(y)
 
