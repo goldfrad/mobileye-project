@@ -43,8 +43,8 @@ class FrameContainer(object):
         self.valid = []
 
 
-curr_frame_id = 29
-prev_frame_id = 28
+curr_frame_id = 26
+prev_frame_id = 25
 
 
 # read data and run
